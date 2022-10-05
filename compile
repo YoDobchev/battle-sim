@@ -1,2 +1,3 @@
 #!/bin/bash
-g++ -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lSDL2_net -pthread $(pwd)/src/main.cpp -o $(pwd)/build/jet-fighter
+g++ -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lSDL2_net -pthread $(pwd)/src/main.cpp -o $(pwd)/build/battle-sim
+#g++ -Isrc/Include -Lsrc/lib -o build/battle-sim src/main.cpp -lmingw32 -lSDL2main -lSDL2

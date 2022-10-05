@@ -1,6 +1,6 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_ttf.h>
+//#include <SDL2/SDL_image.h>
+//#include <SDL2/SDL_ttf.h>
 #include <iostream>
 
 const uint16_t SCREEN_WIDTH = 640;
@@ -34,14 +34,14 @@ bool init() {
                 success = false;
             } else {
                 SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
-                if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
-                    std::cout << SDL_GetError() << std::endl;
-                    success = false;
-                }
-                if (TTF_Init() == -1) {
-                    std::cout << SDL_GetError() << std::endl;
-                    success = false;
-                }
+                // if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
+                //     std::cout << SDL_GetError() << std::endl;
+                //     success = false;
+                // }
+                // if (TTF_Init() == -1) {
+                //     std::cout << SDL_GetError() << std::endl;
+                //     success = false;
+                // }
             }
         }
     }
@@ -54,11 +54,11 @@ void close() {
     SDL_DestroyWindow(gWindow);
     gWindow = NULL;
     gRenderer = NULL;
-    IMG_Quit();
-    TTF_Quit();
+    // IMG_Quit();
+    // TTF_Quit();
     SDL_Quit();
 }
-int main() {
+int main(int argv, char** args) {
     if (!init()) {
         std::cout << "Failed to initialize!" << std::endl;
         return 0;
