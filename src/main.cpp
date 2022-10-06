@@ -6,7 +6,9 @@ SDL_Renderer* gRenderer = NULL;
 
 SDL_Event ev;
 
-Tile grass, flower;
+Texture grass, flower;
+
+Tile battlefield[96][54];
 
 bool quit;
 
@@ -46,19 +48,11 @@ Entity::Entity() {
     posX = 0;
     posY = 0;
     deg = 0;
-}
-Tile::Tile(int tileType) {
-    srand(time(0));
-    int chance = rand();
-    std::cout << chance << std::endl;
-    if (chance % 2 == 0) {
-        tileType = 1;
-    } else {
-        tileType = 0;
-    }
+    rWidth = 0;
+    rHeight = 0;
 }
 
-bool Entity::loadSprite(std::string path) {
+bool Texture::loadSprite(std::string path) {
     SDL_Texture* finalTexture = NULL;
     SDL_Surface* loadFromSurface = IMG_Load(path.c_str());
     if (loadFromSurface == NULL) {
@@ -77,7 +71,6 @@ bool Entity::loadSprite(std::string path) {
     return rTexture != NULL;   
 }
 
-
 void Entity::render(SDL_Rect* clip) {
     SDL_Rect renderRect = {posX, posY, rWidth, rHeight};
     if (clip != NULL) {
@@ -88,8 +81,36 @@ void Entity::render(SDL_Rect* clip) {
 }
 
 bool loadMedia() {
-    grass.loadSprite("src/media/png/grass.png");
-    flower.loadSprite("src/media/png/flower.png");
+    // zarejdame samo 2te teksturi koit ni trqbvat (za da ne go praim za drugite 5000 i nesh)
+    if (!grass.loadSprite("src/media/png/grass.png")) {
+        std::cout << "Failed to load texture!" << std::endl;
+        return false;
+    } 
+    if (!flower.loadSprite("src/media/png/flower.png")) {
+        std::cout << "Failed to load texture!" << std::endl;
+        return false;
+    }
+    // glupost za da raboti random num 🤷
+    srand(time(NULL));
+    // koordinatite koit se updatevat na vsqka interaciq na cikula za da gi razpolojim na vseki 20 po x & y
+    int relativeX = -20, relativeY = -20;
+    for (short int i = 0; i < 96; ++i) {
+        relativeX += 20;
+        relativeY = 0;
+        for (short int j = 0; j < 54; ++j) {
+            relativeY += 20;
+            battlefield[i][j].posX = relativeX;
+            battlefield[i][j].posY = relativeY;
+            battlefield[i][j].rWidth = 20;
+            battlefield[i][j].rHeight = 20;
+            int randomNum = 1 + (rand() % 100);
+            if (randomNum < 5) {
+                battlefield[i][j].rTexture = flower.rTexture;
+            } else {
+                battlefield[i][j].rTexture = grass.rTexture;
+            }
+        }
+    }
     return true;
 }
 
@@ -118,8 +139,13 @@ int main(int argv, char** args) {
                 quit = true;
             }
         }
-        SDL_RenderClear(gRenderer);
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+        SDL_RenderClear(gRenderer);
+        for (short int i = 0; i < 96; ++i) {
+            for (short int j = 0; j < 54; ++j) {
+                battlefield[i][j].render();
+            }
+        }
         SDL_RenderPresent(gRenderer);
     }
     close();

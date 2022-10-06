@@ -4,10 +4,17 @@
 const uint16_t SCREEN_WIDTH = 1920;
 const uint16_t SCREEN_HEIGHT = 1080;
 
-struct Entity {
-    Entity();
-
+// dopulnitelna structura samo za teksturi
+struct Texture {
     bool loadSprite(std::string path);
+
+    SDL_Texture* rTexture;
+
+    int rWidth, rHeight;
+};
+
+struct Entity: public Texture {
+    Entity();
 
     // virtual void free();
 
@@ -16,13 +23,12 @@ struct Entity {
     int getWidth();
     int getHeight();
 
-    int rWidth, rHeight, posX, posY, deg;
+    int posX, posY, deg;
 
-    SDL_Texture* rTexture;
+    
 };
 
 struct Tile: public Entity {
-    Tile(int tileType = 0);
     // 0 - grass 1 - flower
     int tileType;
 };
