@@ -16,8 +16,6 @@ struct Texture {
 struct Entity: public Texture {
     Entity();
 
-    // virtual void free();
-
     void render(SDL_Rect* clip = NULL);
 
     int getWidth();
@@ -25,12 +23,26 @@ struct Entity: public Texture {
 
     int posX, posY, deg;
 
-    
 };
 
 struct Tile: public Entity {
-    // 0 - grass 1 - flower
+    Tile();
+    // 0 - grass 1 - flower 2 - dirt
     int tileType;
 };
+
+struct Unit: public Entity {
+    Unit();
+
+    void move(int speed);
+
+    int health;
+};
+
+bool init();
+
+bool loadMedia();
+
+void close();
 
 #endif
