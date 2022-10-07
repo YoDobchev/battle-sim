@@ -6,7 +6,7 @@ SDL_Renderer* gRenderer = NULL;
 
 SDL_Event ev;
 
-Texture grass, flower;
+Texture grass, flower, dirt;
 
 Tile battlefield[96][54];
 
@@ -90,30 +90,40 @@ bool loadMedia() {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
+    if(!dirt.loadSprite("src/media/png/dirt.png")){
+        std::cout << "Failed to load texture!" << std::endl;
+    }
     // glupost za da raboti random num 🤷
     srand(time(NULL));
     // koordinatite koit se updatevat na vsqka interaciq na cikula za da gi razpolojim na vseki 20 po x & y
     int relativeX = -20, relativeY = -20;
     for (short int i = 0; i < 96; ++i) {
         relativeX += 20;
-        relativeY = 0;
+        relativeY = -20;
         for (short int j = 0; j < 54; ++j) {
             relativeY += 20;
-            battlefield[i][j].posX = relativeX;
-            battlefield[i][j].posY = relativeY;
-            battlefield[i][j].rWidth = 20;
-            battlefield[i][j].rHeight = 20;
-            int randomNum = 1 + (rand() % 100);
-            if (randomNum < 5) {
-                battlefield[i][j].rTexture = flower.rTexture;
+            if (i > 1) { 
+                battlefield[i][j].posX = relativeX;
+                battlefield[i][j].posY = relativeY;
+                battlefield[i][j].rWidth = 20;
+                battlefield[i][j].rHeight = 20;
+                int randomNum = 1 + (rand() % 100);
+                if (randomNum < 5) {
+                    battlefield[i][j].rTexture = flower.rTexture;
+                } else {
+                    battlefield[i][j].rTexture = grass.rTexture;
+                }
             } else {
-                battlefield[i][j].rTexture = grass.rTexture;
+                battlefield[i][j].posX = relativeX;
+                battlefield[i][j].posY = relativeY;
+                battlefield[i][j].rWidth = 20;
+                battlefield[i][j].rHeight = 20;
+                battlefield[i][j].rTexture = dirt.rTexture;
             }
         }
     }
     return true;
 }
-
 void close() {
     SDL_DestroyRenderer(gRenderer);
     SDL_DestroyWindow(gWindow);
