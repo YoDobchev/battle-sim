@@ -6,13 +6,23 @@ SDL_Renderer* gRenderer = NULL;
 
 SDL_Event ev;
 
-Texture grass, flower, dirt, melee;
+Texture grass, flower, dirt, melee, yellow;
 
 Tile battlefield[96][54];
 
 Unit meleeClass;
 
 bool quit;
+
+bool isFullScreen = true;
+
+// void toggleFullScreen(SDL_Window* window, bool currentState)
+// {
+//     isFullScreen = !currentState;
+
+//     SDL_SetWindowFullscreen(window, !currentState);
+//     SDL_ShowCursor(currentState);
+// }
 
 bool init() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -23,7 +33,7 @@ bool init() {
         std::cout << "LTF not enabled" << std::endl;
         return false;
     }
-    gWindow = SDL_CreateWindow("Battle Simulator", 350, 200, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    gWindow = SDL_CreateWindow("Battle Simulator", 0, 30, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (gWindow == NULL) {
         std::cout << SDL_GetError() << std::endl;
         return false;
@@ -99,22 +109,27 @@ void Unit::move(int speed) {
 
 bool loadMedia() {
     // zarejdame samo 2te teksturi koit ni trqbvat (za da ne go praim za drugite 5000 i nesh)
-    if (!grass.loadSprite("src/media/png/grass.png")) {
+    if (!grass.loadSprite("src/media/png/grass2.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
 
-    if (!flower.loadSprite("src/media/png/flower.png")) {
+    if (!flower.loadSprite("src/media/png/flowers2.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
 
-    if(!dirt.loadSprite("src/media/png/dirt.png")){
+    if (!yellow.loadSprite("src/media/png/yellowfg.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
 
-    if(!melee.loadSprite("src/media/png/melee.png")){
+    if (!dirt.loadSprite("src/media/png/dirtb.jpg")) {
+        std::cout << "Failed to load texture!" << std::endl;
+        return false;
+    }
+
+    if (!melee.loadSprite("src/media/png/melee.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
@@ -130,15 +145,20 @@ bool loadMedia() {
             relativeY += 20;
             battlefield[i][j].posX = relativeX;
             battlefield[i][j].posY = relativeY;
+            battlefield[i][j].deg = 90 * (0 + (rand() / 3));
             int randomNum = 1 + (rand() % 100);
-            if (randomNum < 5) {
+            if (randomNum <= 5) {
                 battlefield[i][j].rTexture = flower.rTexture;
                 battlefield[i][j].tileType = 1;
-            } else {
+            } else if (randomNum > 5 && randomNum < 95) {
                 battlefield[i][j].rTexture = grass.rTexture;
                 battlefield[i][j].tileType = 0;
+            } else if (randomNum >=95) {
+                battlefield[i][j].rTexture = yellow.rTexture;
+                battlefield[i][j].tileType = 2;
             }
-            if (i <= 2) {
+            if (i <= 3) {
+                battlefield[i][j].deg = 0;
                 battlefield[i][j].rTexture = dirt.rTexture;
                 battlefield[i][j].tileType = 2;
             }
@@ -167,6 +187,7 @@ int main(int argv, char** args) {
         std::cout << "Failed to initialize!" << std::endl;
         return 0;
     }
+    // toggleFullScreen(gWindow, false);
     while (!quit) {
         while (SDL_PollEvent(&ev) != 0) {
             if (ev.type == SDL_QUIT) {
@@ -176,7 +197,7 @@ int main(int argv, char** args) {
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderClear(gRenderer);
         for (short int i = 0; i < 96; ++i) {
-            for (short int j = 0; j < 54; ++j) {
+            for (short int j = 0; j < 54; ++j){
                 battlefield[i][j].render();
             }
         }
