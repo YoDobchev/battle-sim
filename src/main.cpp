@@ -309,6 +309,20 @@ int main(int argv, char** args) {
                     }
                     break;
             }
+             if (SDL_MOUSEBUTTONDOWN == ev.type) {
+                SDL_GetMouseState( &mouseX, &mouseY);
+                switch (mouseEventPosCheck()) {
+                    case 0:
+                        break;
+                    case 1:
+                        break;
+                    case 2:
+                    checkifbuilable();
+                        break;
+                    
+                    default:
+                        break;
+                }
         }
         
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
