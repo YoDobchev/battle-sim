@@ -26,18 +26,16 @@ int cameraX=0, mouseX, mouseY, mouseEvent;
 
 bool isFullScreen = true;
 
-enum mouseSelection
-{
+enum mouseSelection {
     Default = 0,
     BuilderMode = 1,
 };
 
-enum Baraka
-{
-    barakaUpLeft = 0,
-    barakaUpRigh = 2,
-    barakaDownLeft = 1,
-    barakaDownRight = 3,
+enum barracks {
+    barracksUpLeft = 0,
+    barracksUpRigh = 2,
+    barracksDownLeft = 1,
+    barracksDownRight = 3,
 };
 
 // void toggleFullScreen(SDL_Window* window, bool currentState)
@@ -221,25 +219,27 @@ bool loadMedia() {
 }
 
 bool checkIfBuildable() {
-    if (battlefield[(mouseX + cameraX / 20)][(mouseY / 20)].buildable == true && battlefield[(mouseX / 20) + 1][(mouseY / 20) + 1].buildable == true) {
+    if (battlefield[((mouseX + cameraX) / 20)][(mouseY / 20)].buildable == true && battlefield[((mouseX + cameraX) / 20) + 1][(mouseY / 20) + 1].buildable == true) {
         for(short int i =- 1; i <= 2; i++) {
             for(short int j =- 1; j <= 2; j++) {
-                battlefield[(mouseX + cameraX / 20) + i][(mouseY / 20) + j].buildable = false;
+                battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].buildable = false;
                 mouseEvent = Default;
             }
         }
-        
         return true;
     }
     return false;
 }
+
 void placeBuilding(Texture textures[]) {
-        for(int i = 0; i < 2; i++) {
-            for(int j = 0; j < 2; j++) {
-                battlefield[(mouseX + cameraX / 20) + i][(mouseY / 20) + j].rTexture = textures[i + j].rTexture;
-                battlefield[(mouseX + cameraX / 20) + i][(mouseY / 20) + j].deg = 0;
-            }
+    int textureOrder = 0;
+    for(int i = 0; i < 2; i++) {
+        for(int j = 0; j < 2; j++) {
+            battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].rTexture = textures[textureOrder].rTexture;
+            textureOrder++;
+            battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].deg = 0;
         }
+    }
 }
 
 // int mouseEventPosCheck() {
@@ -271,10 +271,12 @@ int main(int argv, char** args) {
         std::cout << "Failed to initialize!" << std::endl;
         return 0;
     }
+
     if (!loadMedia()) {
         std::cout << "Failed to load media!" << std::endl;
         return 0;
     }
+
     // toggleFullScreen(gWindow, false);
     while (!quit) {
         while (SDL_PollEvent(&ev) != 0) {
@@ -285,31 +287,32 @@ int main(int argv, char** args) {
             switch (ev.key.keysym.sym) {
                 case SDLK_RIGHT:
                     if (cameraX <= 106) {
-                        cameraX++;
+                        cameraX += 20;
                         for (short int i = 0; i < 150; i++) {
                             for (short int j = 0; j < 54; j++){
-                                battlefield[i][j].posX -= 10;
+                                battlefield[i][j].posX -= 20;
                             }  
                         } 
                     }
                     break;
                 case SDLK_LEFT:
                     if (cameraX >= 1) {
-                        cameraX--;
+                        cameraX -= 20;
                         for (short int i = 0; i < 150; i++) {
                             for (short int j = 0; j < 54; j++){
-                                battlefield[i][j].posX +=10;
+                                battlefield[i][j].posX += 20;
                             }  
                         } 
                     }
                     break;
             }
 
+            SDL_GetMouseState(&mouseX, &mouseY);
             if (ev.type == SDL_MOUSEBUTTONDOWN) {
-                SDL_GetMouseState( &mouseX, &mouseY);
                 if (checkIfBuildable()) {
                     placeBuilding(barracks);
                 }
+                
                 // switch (mouseEventPosCheck()) {
                 //     case 2:
                 //         checkIfBuildable();
