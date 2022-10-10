@@ -200,7 +200,7 @@ int main(int argv, char** args) {
         return 0;
     }
     if (!loadMedia()) {
-        std::cout << "Failed to initialize!" << std::endl;
+        std::cout << "Failed to load media!" << std::endl;
         return 0;
     }
     // toggleFullScreen(gWindow, false);
