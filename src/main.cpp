@@ -12,7 +12,7 @@ SDL_Event mb;
 
 TTF_Font* gFont = NULL;
 
-Texture grass, flower, dirt, melee, yellow, baraka[3];
+Texture grass, flower, dirt, melee, yellow, barracks[3];
 
 Tile battlefield[150][54];
 
@@ -22,15 +22,14 @@ SDL_Color gtcolor = { 0, 0, 0, 255 };
 
 bool quit;
 
-int cameraX=0, mouseX, mouseY, mousevent;
+int cameraX=0, mouseX, mouseY, mouseEvent;
 
 bool isFullScreen = true;
 
 enum mouseSelection
 {
-    MouseDefault = 0,
-    MouseStartBuilderMode = 1,
-    MouseEndBuilderMode = 2,
+    Default = 0,
+    BuilderMode = 1,
 };
 
 enum Baraka
@@ -160,19 +159,22 @@ bool loadMedia() {
         return false;
     }
 
-    if (!baraka[0].loadSprite("src/media/png/baraka/barakatopL.png")) {
+    if (!barracks[0].loadSprite("src/media/png/barracks/barracksTopL.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
-    if (!baraka[2].loadSprite("src/media/png/baraka/barakatopR.png")) {
+
+    if (!barracks[1].loadSprite("src/media/png/barracks/barracksBotL.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
-    if (!baraka[1].loadSprite("src/media/png/baraka/barakabotL.png")) {
+    
+    if (!barracks[2].loadSprite("src/media/png/barracks/barracksTopR.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
-    if (!baraka[3].loadSprite("src/media/png/baraka/barakabotR.png")) {
+    
+    if (!barracks[3].loadSprite("src/media/png/barracks/barracksBotR.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
@@ -218,47 +220,40 @@ bool loadMedia() {
     return true;
 }
 
-bool checkifbuilable() {
-    int builduptrue=0;
-    for(short int i=0;i<=1;i++) {
-        for(short int j=0;j<=1;j++) {
-            if(battlefield[(mouseX/20)+i][(mouseY/20)+j].buildable == true) {
-                builduptrue++;
+bool checkIfBuildable() {
+    if (battlefield[(mouseX + cameraX / 20)][(mouseY / 20)].buildable == true && battlefield[(mouseX / 20) + 1][(mouseY / 20) + 1].buildable == true) {
+        for(short int i =- 1; i <= 2; i++) {
+            for(short int j =- 1; j <= 2; j++) {
+                battlefield[(mouseX + cameraX / 20) + i][(mouseY / 20) + j].buildable = false;
+                mouseEvent = Default;
             }
         }
-    }
-    if(builduptrue==4){
-        for(short int i=-1;i<=2;i++) {
-            for(short int j=-1;j<=2;j++) {
-                battlefield[(mouseX/20)+i][(mouseY/20)+j].buildable = false;
-                mousevent = MouseDefault;
-            }
-        }
-        int h=0;
-        for(int i=0;i<2;i++) {
-            for(int j=0;j<2;j++) {
-                battlefield[(mouseX/20)+i][(mouseY/20)+j].rTexture = baraka[h].rTexture;
-                h++;
-                battlefield[(mouseX/20)+i][(mouseY/20)+j].deg=0;
-            }
-        }
+        
         return true;
     }
     return false;
 }
-
-int mouseEventPosCheck() {
-            if(mouseX <= 80) {
-                mousevent = MouseStartBuilderMode;
+void placeBuilding(Texture textures[]) {
+        for(int i = 0; i < 2; i++) {
+            for(int j = 0; j < 2; j++) {
+                battlefield[(mouseX + cameraX / 20) + i][(mouseY / 20) + j].rTexture = textures[i + j].rTexture;
+                battlefield[(mouseX + cameraX / 20) + i][(mouseY / 20) + j].deg = 0;
             }
-            if(mouseX <= 80 && mousevent == MouseStartBuilderMode) {
-                mousevent = MouseDefault;
-            }
-            if(mouseX > 80 && mousevent == MouseStartBuilderMode) {
-                mousevent = MouseEndBuilderMode;
-            }
-    return mousevent;
+        }
 }
+
+// int mouseEventPosCheck() {
+//     if(mouseX <= 80) {
+//         mouseEvent = BuilderMode;
+//     }
+//     if(mouseX <= 80 && mouseEvent == BuilderMode) {
+//         mouseEvent = Default;
+//     }
+//     if(mouseX > 80 && mouseEvent == BuilderMode) {
+//         mouseEvent = MouseEndBuilderMode;
+//     }
+//     return mouseEvent;
+// }
 
 void close() {
     SDL_DestroyRenderer(gRenderer);
@@ -291,9 +286,9 @@ int main(int argv, char** args) {
                 case SDLK_RIGHT:
                     if (cameraX <= 106) {
                         cameraX++;
-                        for (short int i = 0; i < 150; ++i) {
-                            for (short int j = 0; j < 54; ++j){
-                                battlefield[i][j].posX -=10;
+                        for (short int i = 0; i < 150; i++) {
+                            for (short int j = 0; j < 54; j++){
+                                battlefield[i][j].posX -= 10;
                             }  
                         } 
                     }
@@ -301,13 +296,25 @@ int main(int argv, char** args) {
                 case SDLK_LEFT:
                     if (cameraX >= 1) {
                         cameraX--;
-                        for (short int i = 0; i < 150; ++i) {
-                            for (short int j = 0; j < 54; ++j){
+                        for (short int i = 0; i < 150; i++) {
+                            for (short int j = 0; j < 54; j++){
                                 battlefield[i][j].posX +=10;
                             }  
                         } 
                     }
                     break;
+            }
+
+            if (ev.type == SDL_MOUSEBUTTONDOWN) {
+                SDL_GetMouseState( &mouseX, &mouseY);
+                if (checkIfBuildable()) {
+                    placeBuilding(barracks);
+                }
+                // switch (mouseEventPosCheck()) {
+                //     case 2:
+                //         checkIfBuildable();
+                //         break;
+                // }
             }
         }
         
