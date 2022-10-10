@@ -6,6 +6,9 @@ const uint16_t SCREEN_HEIGHT = 1080;
 
 // dopulnitelna structura samo za teksturi
 struct Texture {
+
+    bool loadFromRenderedText( std::string textureText, SDL_Color textColor );
+
     bool loadSprite(std::string path);
 
     SDL_Texture* rTexture;

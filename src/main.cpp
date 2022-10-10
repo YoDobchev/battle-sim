@@ -6,13 +6,21 @@ SDL_Renderer* gRenderer = NULL;
 
 SDL_Event ev;
 
+SDL_Event k;
+
+TTF_Font* gFont = NULL;
+
 Texture grass, flower, dirt, melee, yellow;
 
-Tile battlefield[96][54];
+Tile battlefield[150][54];
 
 Unit meleeClass;
 
+SDL_Color gtcolor = { 0, 0, 0, 255 };
+
 bool quit;
+
+int mapx=0;
 
 bool isFullScreen = true;
 
@@ -134,11 +142,18 @@ bool loadMedia() {
         return false;
     }
 
+    // gFont = TTF_OpenFont( "src/media/ttf/CrimsonText-Italic.ttf", 28 );
+    // if( gFont == NULL ) {
+    //     printf( "Failed to load font! SDL_ttf Error: %s\n", TTF_GetError() );
+    //     return false;
+    // }   
+        
+
     // glupost za da raboti random num 🤷
     srand(time(NULL));
     // koordinatite koit se updatevat na vsqka interaciq na cikula za da gi razpolojim na vseki 20 po x & y
     int relativeX = -20, relativeY = -20;
-    for (short int i = 0; i < 96; ++i) {
+    for (short int i = 0; i < 150; ++i) {
         relativeX += 20;
         relativeY = -20;
         for (short int j = 0; j < 54; ++j) {
@@ -173,6 +188,7 @@ void close() {
     SDL_DestroyWindow(gWindow);
     gWindow = NULL;
     gRenderer = NULL;
+    // gFont=NULL;
     IMG_Quit();
     // TTF_Quit();
     SDL_Quit();
@@ -193,10 +209,38 @@ int main(int argv, char** args) {
             if (ev.type == SDL_QUIT) {
                 quit = true;
             }
+            // LTimer timer;
+            std::stringstream timeText;
+            //map movement
+            switch (ev.key.keysym.sym){
+                case SDLK_RIGHT:
+                    if (mapx <= 106) {
+                        mapx++;
+                        for (short int i = 0; i < 150; ++i) {
+                            for (short int j = 0; j < 54; ++j){
+                                battlefield[i][j].posX -=10;
+                            }  
+                        } 
+                    }
+                    break;
+                case SDLK_LEFT:
+                    if (mapx >= 1) {
+                        mapx--;
+                        for (short int i = 0; i < 150; ++i) {
+                            for (short int j = 0; j < 54; ++j){
+                                battlefield[i][j].posX +=10;
+                            }  
+                        } 
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
+        
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderClear(gRenderer);
-        for (short int i = 0; i < 96; ++i) {
+        for (short int i = 0; i < 150; ++i) {
             for (short int j = 0; j < 54; ++j){
                 battlefield[i][j].render();
             }
