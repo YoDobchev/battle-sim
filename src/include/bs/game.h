@@ -32,6 +32,7 @@ struct Tile: public Entity {
     Tile();
     // 0 - grass 1 - flower 2 - dirt
     int tileType;
+    bool buildable;
 };
 
 struct Unit: public Entity {
