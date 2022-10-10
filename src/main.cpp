@@ -20,7 +20,7 @@ SDL_Color gtcolor = { 0, 0, 0, 255 };
 
 bool quit;
 
-int mapx=0;
+int cameraX = 0;
 
 bool isFullScreen = true;
 
@@ -160,7 +160,7 @@ bool loadMedia() {
             relativeY += 20;
             battlefield[i][j].posX = relativeX;
             battlefield[i][j].posY = relativeY;
-            battlefield[i][j].deg = 90 * (0 + (rand() / 3));
+            battlefield[i][j].deg = 90 * (0 + (rand() % 4));
             int randomNum = 1 + (rand() % 100);
             if (randomNum <= 5) {
                 battlefield[i][j].rTexture = flower.rTexture;
@@ -210,12 +210,12 @@ int main(int argv, char** args) {
                 quit = true;
             }
             // LTimer timer;
-            std::stringstream timeText;
+            // std::stringstream timeText;
             //map movement
             switch (ev.key.keysym.sym){
                 case SDLK_RIGHT:
-                    if (mapx <= 106) {
-                        mapx++;
+                    if (cameraX <= 106) {
+                        cameraX++;
                         for (short int i = 0; i < 150; ++i) {
                             for (short int j = 0; j < 54; ++j){
                                 battlefield[i][j].posX -=10;
@@ -224,16 +224,14 @@ int main(int argv, char** args) {
                     }
                     break;
                 case SDLK_LEFT:
-                    if (mapx >= 1) {
-                        mapx--;
+                    if (cameraX >= 1) {
+                        cameraX--;
                         for (short int i = 0; i < 150; ++i) {
                             for (short int j = 0; j < 54; ++j){
                                 battlefield[i][j].posX +=10;
                             }  
                         } 
                     }
-                    break;
-                default:
                     break;
             }
         }
