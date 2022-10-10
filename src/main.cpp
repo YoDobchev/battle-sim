@@ -22,7 +22,7 @@ SDL_Color gtcolor = { 0, 0, 0, 255 };
 
 bool quit;
 
-int mapx=0, mouseX, mouseY, mousevent;
+int cameraX=0, mouseX, mouseY, mousevent;
 
 bool isFullScreen = true;
 
@@ -195,9 +195,7 @@ bool loadMedia() {
             relativeY += 20;
             battlefield[i][j].posX = relativeX;
             battlefield[i][j].posY = relativeY;
-            if (battlefield[i][j].buildable == true) {
-                battlefield[i][j].deg = 90 * (0 + (rand() / 3));
-            }
+            battlefield[i][j].deg = 90 * (0 + (rand() % 4));
             int randomNum = 1 + (rand() % 100);
             if (randomNum <= 5) {
                 battlefield[i][j].rTexture = flower.rTexture;
@@ -291,8 +289,8 @@ int main(int argv, char** args) {
             //map movement
             switch (ev.key.keysym.sym) {
                 case SDLK_RIGHT:
-                    if (mapx <= 106) {
-                        mapx++;
+                    if (cameraX <= 106) {
+                        cameraX++;
                         for (short int i = 0; i < 150; ++i) {
                             for (short int j = 0; j < 54; ++j){
                                 battlefield[i][j].posX -=10;
@@ -301,8 +299,8 @@ int main(int argv, char** args) {
                     }
                     break;
                 case SDLK_LEFT:
-                    if (mapx >= 1) {
-                        mapx--;
+                    if (cameraX >= 1) {
+                        cameraX--;
                         for (short int i = 0; i < 150; ++i) {
                             for (short int j = 0; j < 54; ++j){
                                 battlefield[i][j].posX +=10;
@@ -310,23 +308,6 @@ int main(int argv, char** args) {
                         } 
                     }
                     break;
-                default:
-                    break;
-            }   
-            if (SDL_MOUSEBUTTONDOWN == ev.type) {
-                SDL_GetMouseState( &mouseX, &mouseY);
-                switch (mouseEventPosCheck()) {
-                    case 0:w
-                        break;
-                    case 1:
-                        break;
-                    case 2:
-                    checkifbuilable();
-                        break;
-                    
-                    default:
-                        break;
-                }
             }
         }
         
