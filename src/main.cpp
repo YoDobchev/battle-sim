@@ -12,7 +12,7 @@ SDL_Event mb;
 
 TTF_Font* gFont = NULL;
 
-Texture grass, flower, dirt, melee, yellow, barracks[3];
+Texture grass, flower, dirt, melee, yellow, baraka[3];
 
 Tile battlefield[150][54];
 
@@ -22,20 +22,23 @@ SDL_Color gtcolor = { 0, 0, 0, 255 };
 
 bool quit;
 
-int cameraX=0, mouseX, mouseY, mouseEvent;
+int cameraX=0, mouseX, mouseY, mousevent;
 
 bool isFullScreen = true;
 
-enum mouseSelection {
-    Default = 0,
-    BuilderMode = 1,
+enum mouseSelection
+{
+    MouseDefault = 0,
+    MouseStartBuilderMode = 1,
+    MouseEndBuilderMode = 2,
 };
 
-enum barracks {
-    barracksUpLeft = 0,
-    barracksUpRigh = 2,
-    barracksDownLeft = 1,
-    barracksDownRight = 3,
+enum Baraka
+{
+    barakaUpLeft = 0,
+    barakaUpRigh = 2,
+    barakaDownLeft = 1,
+    barakaDownRight = 3,
 };
 
 // void toggleFullScreen(SDL_Window* window, bool currentState)
@@ -157,22 +160,19 @@ bool loadMedia() {
         return false;
     }
 
-    if (!barracks[0].loadSprite("src/media/png/barracks/barracksTopL.png")) {
+    if (!baraka[0].loadSprite("src/media/png/baraka/barakatopL.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
-
-    if (!barracks[1].loadSprite("src/media/png/barracks/barracksBotL.png")) {
+    if (!baraka[2].loadSprite("src/media/png/baraka/barakatopR.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
-    
-    if (!barracks[2].loadSprite("src/media/png/barracks/barracksTopR.png")) {
+    if (!baraka[1].loadSprite("src/media/png/baraka/barakabotL.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
-    
-    if (!barracks[3].loadSprite("src/media/png/barracks/barracksBotR.png")) {
+    if (!baraka[3].loadSprite("src/media/png/baraka/barakabotR.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
@@ -218,12 +218,28 @@ bool loadMedia() {
     return true;
 }
 
-bool checkIfBuildable() {
-    if (battlefield[((mouseX + cameraX) / 20)][(mouseY / 20)].buildable == true && battlefield[((mouseX + cameraX) / 20) + 1][(mouseY / 20) + 1].buildable == true) {
-        for(short int i =- 1; i <= 2; i++) {
-            for(short int j =- 1; j <= 2; j++) {
-                battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].buildable = false;
-                mouseEvent = Default;
+bool checkifbuilable() {
+    int builduptrue=0;
+    for(short int i=0;i<=1;i++) {
+        for(short int j=0;j<=1;j++) {
+            if(battlefield[(mouseX/20)+i][(mouseY/20)+j].buildable == true) {
+                builduptrue++;
+            }
+        }
+    }
+    if(builduptrue==4){
+        for(short int i=-1;i<=2;i++) {
+            for(short int j=-1;j<=2;j++) {
+                battlefield[(mouseX/20)+i][(mouseY/20)+j].buildable = false;
+                mousevent = MouseDefault;
+            }
+        }
+        int h=0;
+        for(int i=0;i<2;i++) {
+            for(int j=0;j<2;j++) {
+                battlefield[(mouseX/20)+i][(mouseY/20)+j].rTexture = baraka[h].rTexture;
+                h++;
+                battlefield[(mouseX/20)+i][(mouseY/20)+j].deg=0;
             }
         }
         return true;
@@ -231,29 +247,18 @@ bool checkIfBuildable() {
     return false;
 }
 
-void placeBuilding(Texture textures[]) {
-    int textureOrder = 0;
-    for(int i = 0; i < 2; i++) {
-        for(int j = 0; j < 2; j++) {
-            battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].rTexture = textures[textureOrder].rTexture;
-            textureOrder++;
-            battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].deg = 0;
-        }
-    }
+int mouseEventPosCheck() {
+            if(mouseX <= 80) {
+                mousevent = MouseStartBuilderMode;
+            }
+            if(mouseX <= 80 && mousevent == MouseStartBuilderMode) {
+                mousevent = MouseDefault;
+            }
+            if(mouseX > 80 && mousevent == MouseStartBuilderMode) {
+                mousevent = MouseEndBuilderMode;
+            }
+    return mousevent;
 }
-
-// int mouseEventPosCheck() {
-//     if(mouseX <= 80) {
-//         mouseEvent = BuilderMode;
-//     }
-//     if(mouseX <= 80 && mouseEvent == BuilderMode) {
-//         mouseEvent = Default;
-//     }
-//     if(mouseX > 80 && mouseEvent == BuilderMode) {
-//         mouseEvent = MouseEndBuilderMode;
-//     }
-//     return mouseEvent;
-// }
 
 void close() {
     SDL_DestroyRenderer(gRenderer);
@@ -271,12 +276,10 @@ int main(int argv, char** args) {
         std::cout << "Failed to initialize!" << std::endl;
         return 0;
     }
-
     if (!loadMedia()) {
         std::cout << "Failed to load media!" << std::endl;
         return 0;
     }
-
     // toggleFullScreen(gWindow, false);
     while (!quit) {
         while (SDL_PollEvent(&ev) != 0) {
@@ -287,25 +290,39 @@ int main(int argv, char** args) {
             switch (ev.key.keysym.sym) {
                 case SDLK_RIGHT:
                     if (cameraX <= 106) {
-                        cameraX += 20;
-                        for (short int i = 0; i < 150; i++) {
-                            for (short int j = 0; j < 54; j++){
-                                battlefield[i][j].posX -= 20;
+                        cameraX++;
+                        for (short int i = 0; i < 150; ++i) {
+                            for (short int j = 0; j < 54; ++j){
+                                battlefield[i][j].posX -=10;
                             }  
                         } 
                     }
                     break;
                 case SDLK_LEFT:
                     if (cameraX >= 1) {
-                        cameraX -= 20;
-                        for (short int i = 0; i < 150; i++) {
-                            for (short int j = 0; j < 54; j++){
-                                battlefield[i][j].posX += 20;
+                        cameraX--;
+                        for (short int i = 0; i < 150; ++i) {
+                            for (short int j = 0; j < 54; ++j){
+                                battlefield[i][j].posX +=10;
                             }  
                         } 
                     }
                     break;
             }
+             if (SDL_MOUSEBUTTONDOWN == ev.type) {
+                SDL_GetMouseState( &mouseX, &mouseY);
+                switch (mouseEventPosCheck()) {
+                    case 0:
+                        break;
+                    case 1:
+                        break;
+                    case 2:
+                    checkifbuilable();
+                        break;
+                    
+                    default:
+                        break;
+                }
         }
         
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
