@@ -7,12 +7,12 @@ SDL_Renderer* gRenderer = NULL;
 SDL_Event ev;
 
 SDL_Event k;
-//event za click na miska
+//event za click na mishka
 SDL_Event mb;
 
 TTF_Font* gFont = NULL;
 
-Texture grass, flower, dirt, melee, yellow, barracks[3];
+Texture grass, flower, dirt, melee, yellow, barracks[4], allowedToBuildMask, forbiddenToBuildMask, transparentBarracks;
 
 Tile battlefield[150][54];
 
@@ -20,9 +20,11 @@ Unit meleeClass;
 
 SDL_Color gtcolor = { 0, 0, 0, 255 };
 
+Entity buildingPlacementIndication, buildingBeingPlaced;
+
 bool quit;
 
-int cameraX=0, mouseX, mouseY, mouseEvent;
+int cameraX=0, mouseX, mouseY, mouseEvent, row, column;
 
 bool isFullScreen = true;
 
@@ -37,14 +39,6 @@ enum barracks {
     barracksDownLeft = 1,
     barracksDownRight = 3,
 };
-
-// void toggleFullScreen(SDL_Window* window, bool currentState)
-// {
-//     isFullScreen = !currentState;
-
-//     SDL_SetWindowFullscreen(window, !currentState);
-//     SDL_ShowCursor(currentState);
-// }
 
 bool init() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -131,7 +125,7 @@ void Unit::move(int speed) {
 }
 
 bool loadMedia() {
-    // zarejdame samo 2te teksturi koit ni trqbvat (za da ne go praim za drugite 5000 i nesh)
+    // zarejdame samo like 15 teksturi znaesh kak e 🤩
     if (!grass.loadSprite("src/media/png/grass2.png")) {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
@@ -176,13 +170,33 @@ bool loadMedia() {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
+    
+    if (!allowedToBuildMask.loadSprite("src/media/png/allowedToBuildMask.png")) {
+        std::cout << "Failed to load texture!" << std::endl;
+        return false;
+    }
+
+    if (!forbiddenToBuildMask.loadSprite("src/media/png/forbiddenToBuildMask.png")) {
+        std::cout << "Failed to load texture!" << std::endl;
+        return false;
+    }
+
+    if (!transparentBarracks.loadSprite("src/media/png/transparent/barracks.png")) {
+        std::cout << "Failed to load texture!" << std::endl;
+        return false;
+    }
+    buildingPlacementIndication.rHeight = 40;
+    buildingPlacementIndication.rWidth = 40;
+    buildingBeingPlaced.rHeight = 40;
+    buildingBeingPlaced.rWidth = 40;
+    buildingBeingPlaced.rTexture = transparentBarracks.rTexture;
+
 
     // gFont = TTF_OpenFont( "src/media/ttf/CrimsonText-Italic.ttf", 28 );
     // if( gFont == NULL ) {
     //     printf( "Failed to load font! SDL_ttf Error: %s\n", TTF_GetError() );
     //     return false;
     // }   
-        
 
     // glupost za da raboti random num 🤷
     srand(time(NULL));
@@ -213,47 +227,35 @@ bool loadMedia() {
                 battlefield[i][j].tileType = 2;
             }
         }
-    }
+    }   
+    
     meleeClass.rTexture = melee.rTexture;
     return true;
+
 }
 
 bool checkIfBuildable() {
-    if (battlefield[((mouseX + cameraX) / 20)][(mouseY / 20)].buildable == true && battlefield[((mouseX + cameraX) / 20) + 1][(mouseY / 20) + 1].buildable == true) {
-        for(short int i =- 1; i <= 2; i++) {
-            for(short int j =- 1; j <= 2; j++) {
-                battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].buildable = false;
-                mouseEvent = Default;
-            }
-        }
-        return true;
-    }
-    return false;
+    //novata checkIfBuildable nqma nujda praim [1] vseki put kat minaame prez proverki
+    return battlefield[row][column].buildable == true && battlefield[row + 1][column + 1].buildable == true;
 }
 
 void placeBuilding(Texture textures[]) {
     int textureOrder = 0;
     for(int i = 0; i < 2; i++) {
         for(int j = 0; j < 2; j++) {
-            battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].rTexture = textures[textureOrder].rTexture;
+            battlefield[row + i][column + j].rTexture = textures[textureOrder].rTexture;
             textureOrder++;
-            battlefield[((mouseX + cameraX) / 20) + i][(mouseY / 20) + j].deg = 0;
+            battlefield[row + i][column + j].deg = 0;
+        }
+    }
+    // [1] tuka si e nali kato slojim blockhetata da ne moje da se stroi po i okolo tqh 
+    // edge case
+    for(short int i =- 1; i <= 2; i++) {
+        for(short int j =- 1; j <= 2; j++) {
+            battlefield[row + i][column + j].buildable = false;
         }
     }
 }
-
-// int mouseEventPosCheck() {
-//     if(mouseX <= 80) {
-//         mouseEvent = BuilderMode;
-//     }
-//     if(mouseX <= 80 && mouseEvent == BuilderMode) {
-//         mouseEvent = Default;
-//     }
-//     if(mouseX > 80 && mouseEvent == BuilderMode) {
-//         mouseEvent = MouseEndBuilderMode;
-//     }
-//     return mouseEvent;
-// }
 
 void close() {
     SDL_DestroyRenderer(gRenderer);
@@ -276,9 +278,10 @@ int main(int argv, char** args) {
         std::cout << "Failed to load media!" << std::endl;
         return 0;
     }
-
-    // toggleFullScreen(gWindow, false);
     while (!quit) {
+        //kordinatite v grida na mishkata sega 😏🤨
+        row = ((mouseX + cameraX) / 20);
+        column = mouseY / 20;
         while (SDL_PollEvent(&ev) != 0) {
             if (ev.type == SDL_QUIT) {
                 quit = true;
@@ -309,28 +312,41 @@ int main(int argv, char** args) {
 
             SDL_GetMouseState(&mouseX, &mouseY);
             if (ev.type == SDL_MOUSEBUTTONDOWN) {
-                if (checkIfBuildable()) {
+                if (checkIfBuildable()) 
                     placeBuilding(barracks);
-                }
-                
-                // switch (mouseEventPosCheck()) {
-                //     case 2:
-                //         checkIfBuildable();
-                //         break;
-                // }
             }
         }
         
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderClear(gRenderer);
         for (short int i = 0; i < 150; ++i) {
-            for (short int j = 0; j < 54; ++j){
+            for (short int j = 0; j < 54; ++j) {
                 battlefield[i][j].render();
             }
         }
-        // meleeClass.move(3);
-        // meleeClass.render();
+        
+        buildingPlacementIndication.posX = battlefield[row][column].posX;
+        buildingPlacementIndication.posY = battlefield[row][column].posY;
+        buildingBeingPlaced.posX = battlefield[row][column].posX;
+        buildingBeingPlaced.posY = battlefield[row][column].posY;
+        if (checkIfBuildable()) {
+            //ako moje da se stroi nali inicializirame toBePlaced i texturata mu stava allowedToBuildMask
+            buildingPlacementIndication.rTexture = allowedToBuildMask.rTexture;
+        } else {
+            buildingPlacementIndication.rTexture = forbiddenToBuildMask.rTexture;
+            
+        }
+        //rendervame otgore na mapa 
+        buildingBeingPlaced.render();
+        buildingPlacementIndication.render();
+            
+
+   
+        meleeClass.move(3);
+        meleeClass.render();
         SDL_RenderPresent(gRenderer);
+        
+
     }
     close();
     return 0;
