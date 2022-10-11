@@ -289,7 +289,7 @@ int main(int argv, char** args) {
             //map movement
             switch (ev.key.keysym.sym) {
                 case SDLK_RIGHT:
-                    if (cameraX <= 106) {
+                    if (cameraX <= 2000) {
                         cameraX += 20;
                         for (short int i = 0; i < 150; i++) {
                             for (short int j = 0; j < 54; j++){
@@ -309,8 +309,6 @@ int main(int argv, char** args) {
                     }
                     break;
             }
-
-            SDL_GetMouseState(&mouseX, &mouseY);
             if (ev.type == SDL_MOUSEBUTTONDOWN) {
                 if (checkIfBuildable()) 
                     placeBuilding(barracks);
