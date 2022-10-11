@@ -282,6 +282,7 @@ int main(int argv, char** args) {
         //kordinatite v grida na mishkata sega 😏🤨
         row = ((mouseX + cameraX) / 20);
         column = mouseY / 20;
+        std::cout << row << " - " << column << std::endl;
         while (SDL_PollEvent(&ev) != 0) {
             if (ev.type == SDL_QUIT) {
                 quit = true;
@@ -309,6 +310,8 @@ int main(int argv, char** args) {
                     }
                     break;
             }
+            SDL_GetMouseState(&mouseX, &mouseY);
+
             if (ev.type == SDL_MOUSEBUTTONDOWN) {
                 if (checkIfBuildable()) 
                     placeBuilding(barracks);
