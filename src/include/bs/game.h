@@ -8,35 +8,35 @@ const uint16_t SCREEN_HEIGHT = 1080;
 std::unordered_map<int, std::pair<int, int>> directions = {
 	{
 		1,
-		{ -1, -1 }
+		{ -2, -2 }
 	},
 	{
 		2,
-		{ 0, -1 }
+		{ 0, -2 }
 	},
 	{
 		3,
-		{ 1, -1 }
+		{ 2, -2 }
 	},
 	{
 		4,
-		{ -1, 0 }
+		{ -2, 0 }
 	},
 	{
 		6,
-		{ 1, 0 }
+		{ 2, 0 }
 	},
 	{
 		7,
-		{ -1, 1 }
+		{ -2, 2 }
 	},
 	{
 		8,
-		{ 0, 1 }
+		{ 0, 2 }
 	},
 	{
 		9,
-		{ 1, 1 }
+		{ 2, 2 }
 	}
 };
 
@@ -76,7 +76,7 @@ struct Tile: public Entity {
     bool operator<(const Tile &t) const;
 };
 
-// понеже unordered_map иска ключа да се хашва и ако ключа е Tile, не знае как. Тук му казваме как да го направи
+// понеже unordered_map иска ключа да се хашва и ако ключа е Tile, не знае как. Тук му казваме как
 namespace std {
     template <> 
     struct hash<Tile> {
@@ -95,6 +95,8 @@ struct Unit: public Entity {
     void move();
 
     std::vector<Tile> path;
+
+    Tile tileStandingOn;
 
     int health, velX, velY, goalLocS;
 };
@@ -123,7 +125,7 @@ std::vector<Tile> getNeighbours(Tile* tile);
 
 void AStarSearch();
 
-std::vector<Tile> reconstuctPath();
+std::vector<Tile> reconstuctPath(std::unordered_map<Tile, Tile> cameFrom, Tile* start);
 
 bool init();
 

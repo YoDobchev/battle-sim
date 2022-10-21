@@ -6,9 +6,10 @@ SDL_Renderer* gRenderer = NULL;
 
 SDL_Event ev;
 
-SDL_Event k;
-//event za click na mishka
-SDL_Event mb;
+// ???
+// SDL_Event k;
+// //event za click na mishka
+// SDL_Event mb;
 
 TTF_Font* gFont = NULL;
 
@@ -16,11 +17,7 @@ Texture grass, flower, dirt, melee, yellow, barracks[4], allowedToBuildMask, for
 
 Tile battlefield[150][54];
 
-Tile start, goal;
-
-std::unordered_map<Tile, Tile> cameFrom;
-std::unordered_map<Tile, double> costSoFar;
-PriorityQueue frontier;
+Tile goal;
 
 Unit meleeClass;
 
@@ -30,7 +27,7 @@ Entity buildingPlacementIndication, buildingBeingPlaced;
 
 bool quit;
 
-int cameraX=0, mouseX, mouseY, mouseEvent, row, column;
+int cameraX = 0, mouseX, mouseY, mouseEvent, row, column;
 
 bool isFullScreen = true;
 
@@ -140,12 +137,15 @@ Unit::Unit() {
 void Unit::move() { 
     if (!path.empty() && path.size() >= 1 && posX == path[0].posX && posY == path[0].posY) {
         int currentTile = 0;
+        tileStandingOn = battlefield[path[0].posX / 20][path[0].posY / 20];
         for(short int i = -1; i < 2; i++) {
             for(short int j = -1; j < 2; j++) {
                 currentTile++;
                 if (battlefield[path[0].posX / 20 + j][path[0].posY / 20 + i] == battlefield[path[1].posX / 20][path[1].posY / 20]) {
                     velX = directions[currentTile].first;
                     velY = directions[currentTile].second;
+                    if (path.size() > 1)
+                        deg = std::atan2(velY, velX) * (180.0/3.141592653589793238463);
                 }
             }
         }
@@ -275,7 +275,7 @@ bool loadMedia() {
     meleeClass.rTexture = melee.rTexture;
     meleeClass.posX = 200;
     meleeClass.posY = 500;
-    start = battlefield[meleeClass.posX / 20][meleeClass.posY / 20];
+    meleeClass.tileStandingOn = battlefield[meleeClass.posX / 20][meleeClass.posY / 20];
 
     return true;
 
@@ -322,17 +322,6 @@ Tile PriorityQueue::get() {
     return best_item;
 }
 
-void close() {
-    SDL_DestroyRenderer(gRenderer);
-    SDL_DestroyWindow(gWindow);
-    gWindow = NULL;
-    gRenderer = NULL;
-    // gFont=NULL;
-    IMG_Quit();
-    // TTF_Quit();
-    SDL_Quit();
-}
-
 int heuristic(Tile a, Tile b) {
     return std::abs(a.posX - b.posX) + std::abs(a.posY - b.posY);
 }
@@ -352,13 +341,13 @@ std::vector<Tile> getNeighbours(Tile* tile) {
     return neighbours;
 }
 
-void AStarSearch() {
-    frontier = PriorityQueue{};
-    cameFrom.clear();
-    costSoFar.clear();
-    frontier.put(start, 0);
-    cameFrom[start] = start;
-    costSoFar[start] = 0;
+void AStarSearch(Unit* unit) {
+    std::unordered_map<Tile, Tile> cameFrom;
+    std::unordered_map<Tile, double> costSoFar;
+    PriorityQueue frontier;
+    frontier.put(unit->tileStandingOn, 0);
+    cameFrom[unit->tileStandingOn] = unit->tileStandingOn;
+    costSoFar[unit->tileStandingOn] = 0;
 
     while (!frontier.empty()) {
         Tile current = frontier.get();
@@ -377,21 +366,39 @@ void AStarSearch() {
             }
         }
     }
+    std::vector<Tile> newPath = reconstuctPath(cameFrom, &unit->tileStandingOn);
+    if (unit->path.size() != 0)
+        unit->path.resize(1);
+    unit->path.insert(unit->path.end(), newPath.begin(), newPath.end());
 }
 
-std::vector<Tile> reconstuctPath() {
+std::vector<Tile> reconstuctPath(std::unordered_map<Tile, Tile> cameFrom, Tile* start) {
     std::vector<Tile> path;
     Tile current = goal;
     if (cameFrom.find(goal) == cameFrom.end()) {
         return path;
     }
-    while (current != battlefield[start.posX / 20][start.posY / 20]) {
+    while (current != battlefield[start->posX / 20][start->posY / 20]) {
         path.push_back(current);
         current = cameFrom[current];
     }
-    path.push_back(start);
+    path.push_back(*start);
     std::reverse(path.begin(), path.end());
+    // for (Tile& t: path) {
+    //     battlefield[t.posX / 20][t.posY / 20].rTexture = dirt.rTexture;
+    // }
     return path;
+}
+
+void close() {
+    SDL_DestroyRenderer(gRenderer);
+    SDL_DestroyWindow(gWindow);
+    gWindow = NULL;
+    gRenderer = NULL;
+    // gFont=NULL;
+    IMG_Quit();
+    // TTF_Quit();
+    SDL_Quit();
 }
 
 int main(int argv, char** args) {
@@ -419,37 +426,32 @@ int main(int argv, char** args) {
                     if (cameraX <= 2000) {
                         cameraX += 20;
                         for (short int i = 0; i < 150; i++) {
-                            for (short int j = 0; j < 54; j++){
+                            for (short int j = 0; j < 54; j++) {
                                 battlefield[i][j].posX -= 20;
-                            }  
-                        } 
+                            }
+                        }
                     }
                     break;
                 case SDLK_LEFT:
                     if (cameraX >= 1) {
                         cameraX -= 20;
                         for (short int i = 0; i < 150; i++) {
-                            for (short int j = 0; j < 54; j++){
+                            for (short int j = 0; j < 54; j++) {
                                 battlefield[i][j].posX += 20;
-                            }  
-                        } 
+                            }
+                        }
                     }
                     break;
             }
             SDL_GetMouseState(&mouseX, &mouseY);
 
             if (ev.type == SDL_MOUSEBUTTONDOWN) {
-                if (checkIfBuildable()) {
+                if (checkIfBuildable() && battlefield[row][column].walkable) {
                     place(barracks, false);
                     goal.posX = row * 20;
                     goal.posY = column * 20;
-                    // std::cout << "goal co = " << start.posX << " - " << start.posY << std::endl;
-                    AStarSearch();
-                    loadMedia();
-                    meleeClass.path = reconstuctPath();
-                    for (Tile& t: reconstuctPath()) {
-                        battlefield[t.posX / 20][t.posY / 20].rTexture = dirt.rTexture;
-                    }
+                    // loadMedia();
+                    AStarSearch(&meleeClass);
                 }
             }
         }
@@ -479,10 +481,7 @@ int main(int argv, char** args) {
         
         meleeClass.move();
         meleeClass.render();
-        // meleeClass.move(frontier.get());
         SDL_RenderPresent(gRenderer);
-        
-
     }
     close();
     return 0;
