@@ -12,9 +12,15 @@ SDL_Event mb;
 
 TTF_Font* gFont = NULL;
 
-Texture grass, flower, dirt, melee, yellow, barracks[4], allowedToBuildMask, forbiddenToBuildMask, transparentBarracks;
+Texture grass, flower, dirt, melee, yellow, barracks[4], allowedToBuildMask, forbiddenToBuildMask, transparentBarracks, flag;
 
 Tile battlefield[150][54];
+
+Tile start, goal;
+
+std::unordered_map<Tile, Tile> cameFrom;
+std::unordered_map<Tile, double> costSoFar;
+PriorityQueue frontier;
 
 Unit meleeClass;
 
@@ -114,14 +120,40 @@ Tile::Tile() {
     buildable = true; 
 }
 
-Unit::Unit() {
-    rWidth = 20;
-    rHeight = 20;   
+bool Tile::operator==(const Tile &t) const {
+    return posX == t.posX && posY == t.posY;
 }
 
-void Unit::move(int speed) {
-    posX += speed;
-    posY += speed;
+bool Tile::operator<(const Tile &t) const {
+    return std::tie(posX, posY) < std::tie(t.posX, t.posY);
+}
+
+bool operator!=(Tile a, Tile b) {
+    return !(a == b);
+}
+
+Unit::Unit() {
+    rWidth = 20;
+    rHeight = 20;
+}
+// начи ако тряя обеснявам звънкайте
+void Unit::move() { 
+    if (!path.empty() && path.size() >= 1 && posX == path[0].posX && posY == path[0].posY) {
+        int currentTile = 0;
+        for(short int i = -1; i < 2; i++) {
+            for(short int j = -1; j < 2; j++) {
+                currentTile++;
+                if (battlefield[path[0].posX / 20 + j][path[0].posY / 20 + i] == battlefield[path[1].posX / 20][path[1].posY / 20]) {
+                    velX = directions[currentTile].first;
+                    velY = directions[currentTile].second;
+                }
+            }
+        }
+        path.erase(path.begin());
+        return;
+    }
+    posX += velX;
+    posY += velY;
 }
 
 bool loadMedia() {
@@ -185,6 +217,12 @@ bool loadMedia() {
         std::cout << "Failed to load texture!" << std::endl;
         return false;
     }
+    
+    if (!flag.loadSprite("src/media/png/flag.png")) {
+        std::cout << "Failed to load texture!" << std::endl;
+        return false;
+    }
+    
     buildingPlacementIndication.rHeight = 40;
     buildingPlacementIndication.rWidth = 40;
     buildingBeingPlaced.rHeight = 40;
@@ -192,11 +230,11 @@ bool loadMedia() {
     buildingBeingPlaced.rTexture = transparentBarracks.rTexture;
 
 
-    // gFont = TTF_OpenFont( "src/media/ttf/CrimsonText-Italic.ttf", 28 );
+    // gFont = TTF_OpenFont( "src/media/ttf/CrimsonText-Italic.ttf", 28);
     // if( gFont == NULL ) {
-    //     printf( "Failed to load font! SDL_ttf Error: %s\n", TTF_GetError() );
+    //     printf( "Failed to load font! SDL_ttf Error: %s\n", TTF_GetError());
     //     return false;
-    // }   
+    // }
 
     // glupost za da raboti random num 🤷
     srand(time(NULL));
@@ -206,6 +244,7 @@ bool loadMedia() {
         relativeX += 20;
         relativeY = -20;
         for (short int j = 0; j < 54; ++j) {
+            battlefield[i][j].walkable = true;
             relativeY += 20;
             battlefield[i][j].posX = relativeX;
             battlefield[i][j].posY = relativeY;
@@ -217,7 +256,7 @@ bool loadMedia() {
             } else if (randomNum > 5 && randomNum < 95) {
                 battlefield[i][j].rTexture = grass.rTexture;
                 battlefield[i][j].tileType = 0;
-            } else if (randomNum >=95) {
+            } else if (randomNum >= 95) {
                 battlefield[i][j].rTexture = yellow.rTexture;
                 battlefield[i][j].tileType = 2;
             }
@@ -226,10 +265,18 @@ bool loadMedia() {
                 battlefield[i][j].rTexture = dirt.rTexture;
                 battlefield[i][j].tileType = 2;
             }
+            if (j == 20 && i > 30 && i < 70) {
+                battlefield[i][j].rTexture = melee.rTexture;
+                battlefield[i][j].walkable = false;
+            }
         }
-    }   
-    
+    }
+
     meleeClass.rTexture = melee.rTexture;
+    meleeClass.posX = 200;
+    meleeClass.posY = 500;
+    start = battlefield[meleeClass.posX / 20][meleeClass.posY / 20];
+
     return true;
 
 }
@@ -239,22 +286,40 @@ bool checkIfBuildable() {
     return battlefield[row][column].buildable == true && battlefield[row + 1][column + 1].buildable == true;
 }
 
-void placeBuilding(Texture textures[]) {
-    int textureOrder = 0;
-    for(int i = 0; i < 2; i++) {
-        for(int j = 0; j < 2; j++) {
-            battlefield[row + i][column + j].rTexture = textures[textureOrder].rTexture;
-            textureOrder++;
-            battlefield[row + i][column + j].deg = 0;
+void place(Texture textures[], bool building) {
+    if (building) {
+        int textureOrder = 0;
+        for(int i = 0; i < 2; i++) {
+            for(int j = 0; j < 2; j++) {
+                battlefield[row + i][column + j].rTexture = textures[textureOrder].rTexture;
+                textureOrder++;
+                battlefield[row + i][column + j].deg = 0;
+            }
         }
-    }
-    // [1] tuka si e nali kato slojim blockhetata da ne moje da se stroi po i okolo tqh 
-    // edge case
-    for(short int i =- 1; i <= 2; i++) {
-        for(short int j =- 1; j <= 2; j++) {
-            battlefield[row + i][column + j].buildable = false;
+        // [1] tuka si e nali kato slojim blockhetata da ne moje da se stroi po i okolo tqh 
+        // edge case
+        for(short int i =- 1; i <= 2; i++) {
+            for(short int j =- 1; j <= 2; j++) {
+                battlefield[row + i][column + j].buildable = false;
+            }
         }
+        return;
     }
+    battlefield[row][column].rTexture = flag.rTexture;
+}
+
+bool PriorityQueue::empty() const {
+    return elements.empty();
+} 
+
+void PriorityQueue::put(Tile item, double priority) {
+    elements.emplace(priority, item);
+}
+
+Tile PriorityQueue::get() {
+    Tile best_item = elements.top().second;
+    elements.pop();
+    return best_item;
 }
 
 void close() {
@@ -268,6 +333,67 @@ void close() {
     SDL_Quit();
 }
 
+int heuristic(Tile a, Tile b) {
+    return std::abs(a.posX - b.posX) + std::abs(a.posY - b.posY);
+}
+
+std::vector<Tile> getNeighbours(Tile* tile) {
+    std::vector<Tile> neighbours;
+    neighbours.reserve(8);
+    int currentTileNeighbour = 0;
+    for(short int i = -1; i < 2; i++) {
+        for(short int j = -1; j < 2; j++) {
+            currentTileNeighbour++;
+            Tile currentTile = battlefield[tile->posX / 20 + i][tile->posY / 20 + j];
+            if (currentTileNeighbour != 5 && currentTile.walkable)
+                neighbours.emplace_back(currentTile);
+        }
+    }
+    return neighbours;
+}
+
+void AStarSearch() {
+    frontier = PriorityQueue{};
+    cameFrom.clear();
+    costSoFar.clear();
+    frontier.put(start, 0);
+    cameFrom[start] = start;
+    costSoFar[start] = 0;
+
+    while (!frontier.empty()) {
+        Tile current = frontier.get();
+        
+        if (current == battlefield[goal.posX / 20][goal.posY / 20]) {
+            break;
+        }
+        for (Tile& nextTile: getNeighbours(&current)) {
+            double newCost = costSoFar[current];
+            if (costSoFar.find(nextTile) == costSoFar.end() || newCost < costSoFar[nextTile]) {
+                costSoFar[nextTile] = newCost;
+                double priority = newCost + heuristic(nextTile, battlefield[goal.posX / 20][goal.posY / 20]);
+                // std::cout << "tile (" << current.posX << "-" << current.posY << ") newCost " << newCost << ", heuristic " << heuristic(nextTile, battlefield[goal.posX / 20][goal.posY / 20]) << ", priority " << priority << std::endl;
+                frontier.put(nextTile, priority);
+                cameFrom[nextTile] = current;
+            }
+        }
+    }
+}
+
+std::vector<Tile> reconstuctPath() {
+    std::vector<Tile> path;
+    Tile current = goal;
+    if (cameFrom.find(goal) == cameFrom.end()) {
+        return path;
+    }
+    while (current != battlefield[start.posX / 20][start.posY / 20]) {
+        path.push_back(current);
+        current = cameFrom[current];
+    }
+    path.push_back(start);
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+
 int main(int argv, char** args) {
     if (!init()) {
         std::cout << "Failed to initialize!" << std::endl;
@@ -278,11 +404,11 @@ int main(int argv, char** args) {
         std::cout << "Failed to load media!" << std::endl;
         return 0;
     }
+
     while (!quit) {
         //kordinatite v grida na mishkata sega 😏🤨
         row = ((mouseX + cameraX) / 20);
         column = mouseY / 20;
-        std::cout << row << " - " << column << std::endl;
         while (SDL_PollEvent(&ev) != 0) {
             if (ev.type == SDL_QUIT) {
                 quit = true;
@@ -313,8 +439,18 @@ int main(int argv, char** args) {
             SDL_GetMouseState(&mouseX, &mouseY);
 
             if (ev.type == SDL_MOUSEBUTTONDOWN) {
-                if (checkIfBuildable()) 
-                    placeBuilding(barracks);
+                if (checkIfBuildable()) {
+                    place(barracks, false);
+                    goal.posX = row * 20;
+                    goal.posY = column * 20;
+                    // std::cout << "goal co = " << start.posX << " - " << start.posY << std::endl;
+                    AStarSearch();
+                    loadMedia();
+                    meleeClass.path = reconstuctPath();
+                    for (Tile& t: reconstuctPath()) {
+                        battlefield[t.posX / 20][t.posY / 20].rTexture = dirt.rTexture;
+                    }
+                }
             }
         }
         
@@ -340,11 +476,10 @@ int main(int argv, char** args) {
         //rendervame otgore na mapa 
         buildingBeingPlaced.render();
         buildingPlacementIndication.render();
-            
-
-   
-        meleeClass.move(3);
+        
+        meleeClass.move();
         meleeClass.render();
+        // meleeClass.move(frontier.get());
         SDL_RenderPresent(gRenderer);
         
 
