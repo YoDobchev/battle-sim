@@ -13,8 +13,6 @@ SDL_Event ev;
 
 TTF_Font* gFont = NULL;
 
-Texture grass, flower, dirt, melee, yellow, barracks[4], allowedToBuildMask, forbiddenToBuildMask, transparentBarracks, flag;
-
 Tile battlefield[150][54];
 
 Tile goal;
@@ -134,7 +132,7 @@ Unit::Unit() {
     rHeight = 20;
 }
 // начи ако тряя обеснявам звънкайте
-void Unit::move() { 
+void Unit::move() {
     if (!path.empty() && path.size() >= 1 && posX == path[0].posX && posY == path[0].posY) {
         int currentTile = 0;
         tileStandingOn = battlefield[path[0].posX / 20][path[0].posY / 20];
@@ -157,78 +155,19 @@ void Unit::move() {
 }
 
 bool loadMedia() {
-    // zarejdame samo like 15 teksturi znaesh kak e 🤩
-    if (!grass.loadSprite("src/media/png/grass2.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-
-    if (!flower.loadSprite("src/media/png/flowers2.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-
-    if (!yellow.loadSprite("src/media/png/yellowfg.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-
-    if (!dirt.loadSprite("src/media/png/dirtb.jpg")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-
-    if (!melee.loadSprite("src/media/png/melee.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-
-    if (!barracks[0].loadSprite("src/media/png/barracks/barracksTopL.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-
-    if (!barracks[1].loadSprite("src/media/png/barracks/barracksBotL.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-    
-    if (!barracks[2].loadSprite("src/media/png/barracks/barracksTopR.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-    
-    if (!barracks[3].loadSprite("src/media/png/barracks/barracksBotR.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-    
-    if (!allowedToBuildMask.loadSprite("src/media/png/allowedToBuildMask.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-
-    if (!forbiddenToBuildMask.loadSprite("src/media/png/forbiddenToBuildMask.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-
-    if (!transparentBarracks.loadSprite("src/media/png/transparent/barracks.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
-    }
-    
-    if (!flag.loadSprite("src/media/png/flag.png")) {
-        std::cout << "Failed to load texture!" << std::endl;
-        return false;
+    // veche NE zarejdame samo like 15 teksturi znaesh kak e 🤩👍
+    for (auto& tx: tileTextures) {
+        if (!tx.second.first.loadSprite("src/media/png/" + tx.second.second)) {
+            std::cout << "Failed to load texture!" << std::endl;
+            return false;
+        }
     }
     
     buildingPlacementIndication.rHeight = 40;
     buildingPlacementIndication.rWidth = 40;
     buildingBeingPlaced.rHeight = 40;
     buildingBeingPlaced.rWidth = 40;
-    buildingBeingPlaced.rTexture = transparentBarracks.rTexture;
-
+    buildingBeingPlaced.rTexture = tileTextures["transparentBarracks"].first.rTexture;
 
     // gFont = TTF_OpenFont( "src/media/ttf/CrimsonText-Italic.ttf", 28);
     // if( gFont == NULL ) {
@@ -251,34 +190,33 @@ bool loadMedia() {
             battlefield[i][j].deg = 90 * (0 + (rand() % 4));
             int randomNum = 1 + (rand() % 100);
             if (randomNum <= 5) {
-                battlefield[i][j].rTexture = flower.rTexture;
+                battlefield[i][j].rTexture = tileTextures["flower"].first.rTexture;
                 battlefield[i][j].tileType = 1;
             } else if (randomNum > 5 && randomNum < 95) {
-                battlefield[i][j].rTexture = grass.rTexture;
+                battlefield[i][j].rTexture = tileTextures["grass"].first.rTexture;
                 battlefield[i][j].tileType = 0;
             } else if (randomNum >= 95) {
-                battlefield[i][j].rTexture = yellow.rTexture;
+                battlefield[i][j].rTexture = tileTextures["yellowFlower"].first.rTexture;
                 battlefield[i][j].tileType = 2;
             }
             if (i <= 3) {
                 battlefield[i][j].deg = 0;
-                battlefield[i][j].rTexture = dirt.rTexture;
+                battlefield[i][j].rTexture = tileTextures["dirt"].first.rTexture;
                 battlefield[i][j].tileType = 2;
             }
             if (j == 20 && i > 30 && i < 70) {
-                battlefield[i][j].rTexture = melee.rTexture;
+                battlefield[i][j].rTexture = tileTextures["melee"].first.rTexture;
                 battlefield[i][j].walkable = false;
             }
         }
     }
 
-    meleeClass.rTexture = melee.rTexture;
+    meleeClass.rTexture = tileTextures["melee"].first.rTexture;
     meleeClass.posX = 200;
     meleeClass.posY = 500;
     meleeClass.tileStandingOn = battlefield[meleeClass.posX / 20][meleeClass.posY / 20];
 
     return true;
-
 }
 
 bool checkIfBuildable() {
@@ -286,12 +224,12 @@ bool checkIfBuildable() {
     return battlefield[row][column].buildable == true && battlefield[row + 1][column + 1].buildable == true;
 }
 
-void place(Texture textures[], bool building) {
-    if (building) {
+void place(std::string building, bool isBuilding) {
+    if (isBuilding) {
         int textureOrder = 0;
         for(int i = 0; i < 2; i++) {
             for(int j = 0; j < 2; j++) {
-                battlefield[row + i][column + j].rTexture = textures[textureOrder].rTexture;
+                battlefield[row + i][column + j].rTexture =  tileTextures[building + std::to_string(textureOrder)].first.rTexture;
                 textureOrder++;
                 battlefield[row + i][column + j].deg = 0;
             }
@@ -305,7 +243,7 @@ void place(Texture textures[], bool building) {
         }
         return;
     }
-    battlefield[row][column].rTexture = flag.rTexture;
+    battlefield[row][column].rTexture = tileTextures["flag"].first.rTexture;
 }
 
 bool PriorityQueue::empty() const {
@@ -447,7 +385,7 @@ int main(int argv, char** args) {
 
             if (ev.type == SDL_MOUSEBUTTONDOWN) {
                 if (checkIfBuildable() && battlefield[row][column].walkable) {
-                    place(barracks, false);
+                    place("barracks", false);
                     goal.posX = row * 20;
                     goal.posY = column * 20;
                     // loadMedia();
@@ -470,10 +408,9 @@ int main(int argv, char** args) {
         buildingBeingPlaced.posY = battlefield[row][column].posY;
         if (checkIfBuildable()) {
             //ako moje da se stroi nali inicializirame toBePlaced i texturata mu stava allowedToBuildMask
-            buildingPlacementIndication.rTexture = allowedToBuildMask.rTexture;
+            buildingPlacementIndication.rTexture = tileTextures["allowedToBuildMask"].first.rTexture;
         } else {
-            buildingPlacementIndication.rTexture = forbiddenToBuildMask.rTexture;
-            
+            buildingPlacementIndication.rTexture = tileTextures["forbiddenToBuildMask"].first.rTexture;
         }
         //rendervame otgore na mapa 
         buildingBeingPlaced.render();

@@ -52,6 +52,23 @@ struct Texture {
     int rWidth, rHeight;
 };
 
+// ime za tursene -> {tekstura, put v failovata sistema}
+std::unordered_map<std::string, std::pair<Texture, std::string>> tileTextures = {
+    {"grass", {Texture{}, "grass2.png"}},
+    {"flower", {Texture{}, "flowers2.png"}},
+    {"yellowFlower", {Texture{}, "yellowfg.png"}},
+    {"dirt", {Texture{}, "dirtb.jpg"}},
+    {"melee", {Texture{}, "melee.png"}},
+    {"barracks0", {Texture{}, "barracks/barracksTopL.png"}},
+    {"barracks1", {Texture{}, "barracks/barracksBotL.png"}},
+    {"barracks2", {Texture{}, "barracks/barracksTopR.png"}},
+    {"barracks3", {Texture{}, "barracks/barracksBotR.png"}},
+    {"allowedToBuildMask", {Texture{}, "allowedToBuildMask.png"}},
+    {"forbiddenToBuildMask", {Texture{}, "forbiddenToBuildMask.png"}},
+    {"transparentBarracks", {Texture{}, "transparent/barracks.png"}},
+    {"flag", {Texture{}, "flag.png"}},
+};
+
 struct Entity: public Texture {
     Entity();
 
