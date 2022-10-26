@@ -12,7 +12,7 @@ Tile battlefield[150][54];
 
 Tile goal;
 
-std::vector<Unit> meleeClass;
+std::vector<Unit> melees;
 
 std::vector<Building> buildings;
 
@@ -124,7 +124,11 @@ bool operator!=(Tile a, Tile b) {
     return !(a == b);
 }
 
-Unit::Unit() {
+Unit::Unit(int posX, int posY, Tile* tileStandingOn, SDL_Texture* rTexture) {
+    this->posX = posX;
+    this->posY = posY;
+    this->tileStandingOn = tileStandingOn;
+    this->rTexture = rTexture;
     rWidth = 20;
     rHeight = 20;
     velX = 0;
@@ -134,7 +138,7 @@ Unit::Unit() {
 void Unit::move() {
     if (path.size() >= 1 && posX == path[0].posX && posY == path[0].posY) {
         int currentTile = 0;
-        tileStandingOn = battlefield[path[1].posX / 20][path[1].posY / 20];
+        tileStandingOn = &battlefield[path[1].posX / 20][path[1].posY / 20];
         for(short int i = -1; i < 2; i++) {
             for(short int j = -1; j < 2; j++) {
                 currentTile++;
@@ -154,13 +158,8 @@ void Unit::move() {
 }
 
 void Building::spawn() {
-    meleeClass.emplace_back();
-    // meleeClass.back().tileStandingOn = battlefield[(buildingTile->posX / 20) + 3 ][(buildingTile->posY / 20) + 3];
-    meleeClass.back().posX = buildingTile->posX + 40;
-    meleeClass.back().posY = buildingTile->posY;
-    meleeClass.back().tileStandingOn = battlefield[meleeClass.back().posX / 20][meleeClass.back().posY / 20];
-    meleeClass.back().rTexture = tileTextures["melee"].first.rTexture;
-    AStarSearch(&meleeClass.back());
+    melees.emplace_back(buildingTile->posX + 40, buildingTile->posY, &battlefield[(buildingTile->posX + 40) / 20][buildingTile->posY / 20], tileTextures["melee"].first.rTexture);
+    AStarSearch(&melees.back());
 }
 
 bool loadMedia() {
@@ -231,7 +230,6 @@ void place(std::string building, bool isBuilding) {
         buildings.emplace_back();
         buildings.back().buildingTile = &battlefield[row][column];
         buildings.back().spawn();
-        meleeClass.back().render();
         int textureOrder = 0;
         for(int i = 0; i < 2; i++) {
             for(int j = 0; j < 2; j++) {
@@ -290,9 +288,9 @@ void AStarSearch(Unit* unit) {
     std::unordered_map<Tile, Tile> cameFrom;
     std::unordered_map<Tile, double> costSoFar;
     PriorityQueue frontier;
-    frontier.put(unit->tileStandingOn, 0);
-    cameFrom[unit->tileStandingOn] = unit->tileStandingOn;
-    costSoFar[unit->tileStandingOn] = 0;
+    frontier.put(*unit->tileStandingOn, 0);
+    cameFrom[*unit->tileStandingOn] = *unit->tileStandingOn;
+    costSoFar[*unit->tileStandingOn] = 0;
 
     while (!frontier.empty()) {
         Tile current = frontier.get();
@@ -311,7 +309,7 @@ void AStarSearch(Unit* unit) {
             }
         }
     }
-    std::vector<Tile> newPath = reconstuctPath(cameFrom, &unit->tileStandingOn);
+    std::vector<Tile> newPath = reconstuctPath(cameFrom, unit->tileStandingOn);
     if (unit->path.size() != 0)
         unit->path.resize(1);
     unit->path.insert(unit->path.end(), newPath.begin(), newPath.end());
@@ -348,7 +346,7 @@ void close() {
 }
 
 void spawnUnitsSynchronistically() {
-    while (true) {
+    while (!quit) {
         for (Building& b: buildings) {
             b.spawn();
         }
@@ -403,7 +401,7 @@ int main(int argv, char** args) {
                     // goal.posX = row * 20;
                     // goal.posY = column * 20;
                     // loadMedia();
-                    // AStarSearch(&meleeClass);
+                    // AStarSearch(&melees);
                 }
             }
         }
@@ -416,9 +414,9 @@ int main(int argv, char** args) {
             }
         }
 
-        for (Unit& u: meleeClass) {
-            u.render();
+        for (Unit& u: melees) {
             u.move();
+            u.render();
         }
         
         buildingPlacementIndication.posX = battlefield[row][column].posX;
@@ -435,8 +433,8 @@ int main(int argv, char** args) {
         buildingBeingPlaced.render();
         buildingPlacementIndication.render();
         
-        // meleeClass.move();
-        // meleeClass.render();
+        // melees.move();
+        // melees.render();
         SDL_RenderPresent(gRenderer);
     }
     close();

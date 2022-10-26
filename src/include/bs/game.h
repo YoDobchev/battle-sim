@@ -1,5 +1,6 @@
 #ifndef GAME_H
 #define GAME_H
+#define SPEED 2
 
 const uint16_t SCREEN_WIDTH = 1920;
 const uint16_t SCREEN_HEIGHT = 1080;
@@ -8,35 +9,35 @@ const uint16_t SCREEN_HEIGHT = 1080;
 std::unordered_map<int, std::pair<int, int>> directions = {
 	{
 		1,
-		{ -2, -2 }
+		{ -SPEED, -SPEED }
 	},
 	{
 		2,
-		{ 0, -2 }
+		{ 0, -SPEED }
 	},
 	{
 		3,
-		{ 2, -2 }
+		{ SPEED, -SPEED }
 	},
 	{
 		4,
-		{ -2, 0 }
+		{ -SPEED, 0 }
 	},
 	{
 		6,
-		{ 2, 0 }
+		{ SPEED, 0 }
 	},
 	{
 		7,
-		{ -2, 2 }
+		{ -SPEED, SPEED }
 	},
 	{
 		8,
-		{ 0, 2 }
+		{ 0, SPEED }
 	},
 	{
 		9,
-		{ 2, 2 }
+		{ SPEED, SPEED }
 	}
 };
 
@@ -113,13 +114,13 @@ namespace std {
 bool operator!=(Tile a, Tile b);
 
 struct Unit: public Entity {
-    Unit();
+    Unit(int posX, int posY, Tile* tileStandingOn, SDL_Texture* rTexture);
 
     void move();
 
     std::vector<Tile> path;
 
-    Tile tileStandingOn;
+    Tile *tileStandingOn;
 
     int health, velX, velY, goalLocS;
 };
@@ -155,5 +156,7 @@ bool init();
 bool loadMedia();
 
 void close();
+
+void spawnUnitsSynchronistically();
 
 #endif
