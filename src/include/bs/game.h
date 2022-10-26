@@ -93,6 +93,12 @@ struct Tile: public Entity {
     bool operator<(const Tile &t) const;
 };
 
+struct Building {
+    Tile *buildingTile;
+    
+    void spawn();
+};
+
 // понеже unordered_map иска ключа да се хашва и ако ключа е Tile, не знае как. Тук му казваме как
 namespace std {
     template <> 
@@ -140,7 +146,7 @@ int heuristic(Tile a, Tile b);
 // връща съседите на един Tile обект
 std::vector<Tile> getNeighbours(Tile* tile);
 
-void AStarSearch();
+void AStarSearch(Unit* unit);
 
 std::vector<Tile> reconstuctPath(std::unordered_map<Tile, Tile> cameFrom, Tile* start);
 

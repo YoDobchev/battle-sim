@@ -12,7 +12,9 @@ Tile battlefield[150][54];
 
 Tile goal;
 
-Unit meleeClass;
+std::vector<Unit> meleeClass;
+
+std::vector<Building> buildings;
 
 SDL_Color gtcolor = { 0, 0, 0, 255 };
 
@@ -125,6 +127,8 @@ bool operator!=(Tile a, Tile b) {
 Unit::Unit() {
     rWidth = 20;
     rHeight = 20;
+    velX = 0;
+    velY = 0;
 }
 // начи ако тряя обеснявам звънкайте
 void Unit::move() {
@@ -147,6 +151,16 @@ void Unit::move() {
     }
     posX += velX;
     posY += velY;
+}
+
+void Building::spawn() {
+    meleeClass.emplace_back();
+    // meleeClass.back().tileStandingOn = battlefield[(buildingTile->posX / 20) + 3 ][(buildingTile->posY / 20) + 3];
+    meleeClass.back().posX = buildingTile->posX + 40;
+    meleeClass.back().posY = buildingTile->posY;
+    meleeClass.back().tileStandingOn = battlefield[meleeClass.back().posX / 20][meleeClass.back().posY / 20];
+    meleeClass.back().rTexture = tileTextures["melee"].first.rTexture;
+    AStarSearch(&meleeClass.back());
 }
 
 bool loadMedia() {
@@ -194,11 +208,6 @@ bool loadMedia() {
                 battlefield[i][j].rTexture = tileTextures["yellowFlower"].first.rTexture;
                 battlefield[i][j].tileType = 2;
             }
-            if (i <= 3) {
-                battlefield[i][j].deg = 0;
-                battlefield[i][j].rTexture = tileTextures["dirt"].first.rTexture;
-                battlefield[i][j].tileType = 2;
-            }
             if (j == 20 && i > 30 && i < 70) {
                 battlefield[i][j].rTexture = tileTextures["melee"].first.rTexture;
                 battlefield[i][j].walkable = false;
@@ -206,10 +215,8 @@ bool loadMedia() {
         }
     }
 
-    meleeClass.rTexture = tileTextures["melee"].first.rTexture;
-    meleeClass.posX = 200;
-    meleeClass.posY = 500;
-    meleeClass.tileStandingOn = battlefield[meleeClass.posX / 20][meleeClass.posY / 20];
+    goal.posX = 2600;
+    goal.posY = 520;
 
     return true;
 }
@@ -221,10 +228,15 @@ bool checkIfBuildable() {
 
 void place(std::string building, bool isBuilding) {
     if (isBuilding) {
+        buildings.emplace_back();
+        buildings.back().buildingTile = &battlefield[row][column];
+        buildings.back().spawn();
+        meleeClass.back().render();
         int textureOrder = 0;
         for(int i = 0; i < 2; i++) {
             for(int j = 0; j < 2; j++) {
                 battlefield[row + i][column + j].rTexture =  tileTextures[building + std::to_string(textureOrder)].first.rTexture;
+                battlefield[row + i][column + j].walkable = false;
                 textureOrder++;
                 battlefield[row + i][column + j].deg = 0;
             }
@@ -309,6 +321,7 @@ std::vector<Tile> reconstuctPath(std::unordered_map<Tile, Tile> cameFrom, Tile* 
     std::vector<Tile> path;
     Tile current = goal;
     if (cameFrom.find(goal) == cameFrom.end()) {
+        std::cout << "No path found!" << std::endl;
         return path;
     }
     while (current != battlefield[start->posX / 20][start->posY / 20]) {
@@ -334,6 +347,15 @@ void close() {
     SDL_Quit();
 }
 
+void spawnUnitsSynchronistically() {
+    while (true) {
+        for (Building& b: buildings) {
+            b.spawn();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    }
+}
+
 int main(int argv, char** args) {
     if (!init()) {
         std::cout << "Failed to initialize!" << std::endl;
@@ -344,7 +366,8 @@ int main(int argv, char** args) {
         std::cout << "Failed to load media!" << std::endl;
         return 0;
     }
-
+    std::thread spunsy(spawnUnitsSynchronistically);
+    spunsy.detach();
     while (!quit) {
         //kordinatite v grida na mishkata sega 😏🤨
         row = ((mouseX + cameraX) / 20);
@@ -376,11 +399,11 @@ int main(int argv, char** args) {
 
             if (ev.type == SDL_MOUSEBUTTONDOWN) {
                 if (checkIfBuildable() && battlefield[row][column].walkable) {
-                    place("barracks", false);
-                    goal.posX = row * 20;
-                    goal.posY = column * 20;
+                    place("barracks", true);
+                    // goal.posX = row * 20;
+                    // goal.posY = column * 20;
                     // loadMedia();
-                    AStarSearch(&meleeClass);
+                    // AStarSearch(&meleeClass);
                 }
             }
         }
@@ -391,6 +414,11 @@ int main(int argv, char** args) {
             for (short int j = 0; j < 54; ++j) {
                 battlefield[i][j].render();
             }
+        }
+
+        for (Unit& u: meleeClass) {
+            u.render();
+            u.move();
         }
         
         buildingPlacementIndication.posX = battlefield[row][column].posX;
@@ -407,8 +435,8 @@ int main(int argv, char** args) {
         buildingBeingPlaced.render();
         buildingPlacementIndication.render();
         
-        meleeClass.move();
-        meleeClass.render();
+        // meleeClass.move();
+        // meleeClass.render();
         SDL_RenderPresent(gRenderer);
     }
     close();

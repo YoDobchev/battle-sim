@@ -13,6 +13,8 @@
 #include <queue>
 #include <algorithm>
 #include <cmath>
+#include <thread>
+#include <chrono>
 
 #include "game.h"
 #include "timer.h"
