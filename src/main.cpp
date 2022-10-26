@@ -6,11 +6,6 @@ SDL_Renderer* gRenderer = NULL;
 
 SDL_Event ev;
 
-// ???
-// SDL_Event k;
-// //event za click na mishka
-// SDL_Event mb;
-
 TTF_Font* gFont = NULL;
 
 Tile battlefield[150][54];
@@ -101,7 +96,7 @@ bool Texture::loadSprite(std::string path) {
 }
 
 void Entity::render(SDL_Rect* clip) {
-    SDL_Rect renderRect = {posX, posY, rWidth, rHeight};
+    SDL_Rect renderRect = {posX - cameraX, posY, rWidth, rHeight};
     if (clip != NULL) {
         renderRect.w = clip->w;
         renderRect.h = clip->h;
@@ -133,9 +128,9 @@ Unit::Unit() {
 }
 // начи ако тряя обеснявам звънкайте
 void Unit::move() {
-    if (!path.empty() && path.size() >= 1 && posX == path[0].posX && posY == path[0].posY) {
+    if (path.size() >= 1 && posX == path[0].posX && posY == path[0].posY) {
         int currentTile = 0;
-        tileStandingOn = battlefield[path[0].posX / 20][path[0].posY / 20];
+        tileStandingOn = battlefield[path[1].posX / 20][path[1].posY / 20];
         for(short int i = -1; i < 2; i++) {
             for(short int j = -1; j < 2; j++) {
                 currentTile++;
@@ -361,23 +356,19 @@ int main(int argv, char** args) {
             //map movement
             switch (ev.key.keysym.sym) {
                 case SDLK_RIGHT:
-                    if (cameraX <= 2000) {
-                        cameraX += 20;
-                        for (short int i = 0; i < 150; i++) {
-                            for (short int j = 0; j < 54; j++) {
-                                battlefield[i][j].posX -= 20;
-                            }
-                        }
+                    if (cameraX < 1080) {
+                        cameraX += 10;
                     }
                     break;
                 case SDLK_LEFT:
                     if (cameraX >= 1) {
-                        cameraX -= 20;
-                        for (short int i = 0; i < 150; i++) {
-                            for (short int j = 0; j < 54; j++) {
-                                battlefield[i][j].posX += 20;
-                            }
-                        }
+                        cameraX -= 10;
+                    }
+                    break;
+                case SDLK_F11:
+                    if(ev.type == SDL_KEYDOWN && ev.key.repeat == 0) {
+                        isFullScreen = !isFullScreen;
+                        SDL_SetWindowFullscreen(gWindow, isFullScreen);
                     }
                     break;
             }
