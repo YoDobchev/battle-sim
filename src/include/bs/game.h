@@ -70,6 +70,7 @@ std::unordered_map<std::string, std::pair<Texture, std::string>> tileTextures = 
     {"flag", {Texture{}, "flag.png"}},
 };
 
+
 struct Entity: public Texture {
     Entity();
 
@@ -94,12 +95,6 @@ struct Tile: public Entity {
     bool operator<(const Tile &t) const;
 };
 
-struct Building {
-    Tile *buildingTile;
-    
-    void spawn();
-};
-
 // понеже unordered_map иска ключа да се хашва и ако ключа е Tile, не знае как. Тук му казваме как
 namespace std {
     template <> 
@@ -112,6 +107,27 @@ namespace std {
 }
 // дали два Tile обекта са различни
 bool operator!=(Tile a, Tile b);
+
+struct Building {
+
+    Tile *buildingTile;
+
+    void spawn();
+};
+
+struct BuildingProperties {
+    BuildingProperties();
+    
+    std::vector<Building> buildings;
+
+    Uint32 buildingDelayStart;
+
+    int delay;
+};
+
+std::unordered_map<std::string, BuildingProperties> buildings = {
+    {"barracks", BuildingProperties{}}
+};
 
 struct Unit: public Entity {
     Unit(int posX, int posY, Tile* tileStandingOn, SDL_Texture* rTexture);
@@ -156,7 +172,5 @@ bool init();
 bool loadMedia();
 
 void close();
-
-void spawnUnitsSynchronistically();
 
 #endif

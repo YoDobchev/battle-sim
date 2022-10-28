@@ -14,8 +14,6 @@ Tile goal;
 
 std::vector<Unit> melees;
 
-std::vector<Building> buildings;
-
 SDL_Color gtcolor = { 0, 0, 0, 255 };
 
 Entity buildingPlacementIndication, buildingBeingPlaced;
@@ -162,6 +160,12 @@ void Building::spawn() {
     AStarSearch(&melees.back());
 }
 
+BuildingProperties::BuildingProperties() {
+
+    this->delay = 5000;
+    this->buildingDelayStart = SDL_GetTicks();
+}
+
 bool loadMedia() {
     // veche NE zarejdame samo like 15 teksturi znaesh kak e 🤩👍
     for (auto& tx: tileTextures) {
@@ -217,6 +221,8 @@ bool loadMedia() {
     goal.posX = 2600;
     goal.posY = 520;
 
+    buildings["barracks"].delay = 5000;
+
     return true;
 }
 
@@ -227,9 +233,9 @@ bool checkIfBuildable() {
 
 void place(std::string building, bool isBuilding) {
     if (isBuilding) {
-        buildings.emplace_back();
-        buildings.back().buildingTile = &battlefield[row][column];
-        buildings.back().spawn();
+        buildings[building].buildings.emplace_back();
+        buildings[building].buildings.back().buildingTile = &battlefield[row][column];
+        buildings[building].buildings.back().spawn();
         int textureOrder = 0;
         for(int i = 0; i < 2; i++) {
             for(int j = 0; j < 2; j++) {
@@ -345,15 +351,6 @@ void close() {
     SDL_Quit();
 }
 
-void spawnUnitsSynchronistically() {
-    while (!quit) {
-        for (Building& b: buildings) {
-            b.spawn();
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    }
-}
-
 int main(int argv, char** args) {
     if (!init()) {
         std::cout << "Failed to initialize!" << std::endl;
@@ -364,9 +361,9 @@ int main(int argv, char** args) {
         std::cout << "Failed to load media!" << std::endl;
         return 0;
     }
-    std::thread spunsy(spawnUnitsSynchronistically);
-    spunsy.detach();
+
     while (!quit) {
+        // Uint64 start = SDL_GetPerformanceCounter();
         //kordinatite v grida na mishkata sega 😏🤨
         row = ((mouseX + cameraX) / 20);
         column = mouseY / 20;
@@ -400,9 +397,16 @@ int main(int argv, char** args) {
                     place("barracks", true);
                     // goal.posX = row * 20;
                     // goal.posY = column * 20;
-                    // loadMedia();
                     // AStarSearch(&melees);
                 }
+            }
+        }
+        for (auto& buildingType: buildings) {
+            if (SDL_GetTicks() > buildingType.second.buildingDelayStart + buildingType.second.delay) {            
+                for (Building& b: buildingType.second.buildings) {
+                    b.spawn();
+                }
+                buildingType.second.buildingDelayStart = SDL_GetTicks();
             }
         }
         
@@ -435,6 +439,8 @@ int main(int argv, char** args) {
         
         // melees.move();
         // melees.render();
+        // Uint64 end = SDL_GetPerformanceCounter();
+        // SDL_Delay(floor(16.666f - ((end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f)));
         SDL_RenderPresent(gRenderer);
     }
     close();
